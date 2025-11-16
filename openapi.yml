@@ -1,46 +1,406 @@
 openapi: 3.0.3
 info:
-  title: Easyapp API
+  title: Tic Tac Toe API
   version: 1.0.0
-  description: API documentation for easyapp
+  description: API documentation for Tic Tac Toe game
 paths:
-  /api/hello/:
-    get:
-      operationId: api_hello_retrieve
-      description: Get a hello world message
+  /api/register/:
+    post:
+      operationId: api_register
+      description: Register a new user
       tags:
-      - api
-      security:
-      - cookieAuth: []
-      - basicAuth: []
-      - {}
+      - auth
+      requestBody:
+        content:
+          application/json:
+            schema:
+              type: object
+              properties:
+                username:
+                  type: string
+                  minLength: 3
+                  maxLength: 150
+                password:
+                  type: string
+                  minLength: 6
+              required:
+              - username
+              - password
+      responses:
+        '201':
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  message:
+                    type: string
+                  user_id:
+                    type: integer
+                  username:
+                    type: string
+          description: 'User registered successfully'
+        '400':
+          description: 'Bad request'
+  /api/login/:
+    post:
+      operationId: api_login
+      description: Login user
+      tags:
+      - auth
+      requestBody:
+        content:
+          application/json:
+            schema:
+              type: object
+              properties:
+                username:
+                  type: string
+                password:
+                  type: string
+              required:
+              - username
+              - password
       responses:
         '200':
           content:
             application/json:
               schema:
-                $ref: '#/components/schemas/Message'
-          description: ''
+                type: object
+                properties:
+                  token:
+                    type: string
+                  user_id:
+                    type: integer
+                  username:
+                    type: string
+          description: 'Login successful'
+        '400':
+          description: 'Invalid credentials'
+  /api/profile/:
+    get:
+      operationId: api_profile
+      description: Get user profile
+      tags:
+      - user
+      security:
+      - bearerAuth: []
+      responses:
+        '200':
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Member'
+          description: 'User profile'
+        '401':
+          description: 'Unauthorized'
+  /api/games/create/:
+    post:
+      operationId: api_create_game
+      description: Create a new game
+      tags:
+      - game
+      security:
+      - bearerAuth: []
+      requestBody:
+        content:
+          application/json:
+            schema:
+              type: object
+              properties:
+                timer_seconds:
+                  type: integer
+                  minimum: 30
+                  maximum: 300
+                  default: 60
+      responses:
+        '201':
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Game'
+          description: 'Game created'
+        '401':
+          description: 'Unauthorized'
+  /api/games/join/:
+    post:
+      operationId: api_join_game
+      description: Join an existing game
+      tags:
+      - game
+      security:
+      - bearerAuth: []
+      requestBody:
+        content:
+          application/json:
+            schema:
+              type: object
+              properties:
+                game_code:
+                  type: string
+                  maxLength: 10
+              required:
+              - game_code
+      responses:
+        '200':
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Game'
+          description: 'Joined game successfully'
+        '400':
+          description: 'Cannot join game'
+        '404':
+          description: 'Game not found'
+        '401':
+          description: 'Unauthorized'
+  /api/games/available/:
+    get:
+      operationId: api_available_games
+      description: Get list of available games to join
+      tags:
+      - game
+      security:
+      - bearerAuth: []
+      responses:
+        '200':
+          content:
+            application/json:
+              schema:
+                type: array
+                items:
+                  $ref: '#/components/schemas/Game'
+          description: 'List of available games'
+        '401':
+          description: 'Unauthorized'
+  /api/games/my/:
+    get:
+      operationId: api_my_games
+      description: Get list of my active games
+      tags:
+      - game
+      security:
+      - bearerAuth: []
+      responses:
+        '200':
+          content:
+            application/json:
+              schema:
+                type: array
+                items:
+                  $ref: '#/components/schemas/Game'
+          description: 'List of my games'
+        '401':
+          description: 'Unauthorized'
+  /api/games/{game_code}/:
+    get:
+      operationId: api_game_detail
+      description: Get game details
+      tags:
+      - game
+      security:
+      - bearerAuth: []
+      parameters:
+      - name: game_code
+        in: path
+        required: true
+        schema:
+          type: string
+      responses:
+        '200':
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Game'
+          description: 'Game details'
+        '401':
+          description: 'Unauthorized'
+        '403':
+          description: 'Forbidden'
+        '404':
+          description: 'Game not found'
+  /api/games/{game_code}/move/:
+    post:
+      operationId: api_make_move
+      description: Make a move in the game
+      tags:
+      - game
+      security:
+      - bearerAuth: []
+      parameters:
+      - name: game_code
+        in: path
+        required: true
+        schema:
+          type: string
+      requestBody:
+        content:
+          application/json:
+            schema:
+              type: object
+              properties:
+                position:
+                  type: integer
+                  minimum: 0
+                  maximum: 8
+              required:
+              - position
+      responses:
+        '200':
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Game'
+          description: 'Move made successfully'
+        '400':
+          description: 'Invalid move'
+        '401':
+          description: 'Unauthorized'
+        '403':
+          description: 'Forbidden'
+        '404':
+          description: 'Game not found'
+  /api/history/:
+    get:
+      operationId: api_game_history
+      description: Get user's game history
+      tags:
+      - game
+      security:
+      - bearerAuth: []
+      responses:
+        '200':
+          content:
+            application/json:
+              schema:
+                type: array
+                items:
+                  $ref: '#/components/schemas/GameHistory'
+          description: 'Game history'
+        '401':
+          description: 'Unauthorized'
+  /api/rating/:
+    get:
+      operationId: api_rating
+      description: Get top players rating
+      tags:
+      - rating
+      responses:
+        '200':
+          content:
+            application/json:
+              schema:
+                type: array
+                items:
+                  $ref: '#/components/schemas/Rating'
+          description: 'Top players rating'
 components:
   schemas:
-    Message:
+    Member:
       type: object
       properties:
-        message:
+        id:
+          type: integer
+        username:
           type: string
-          maxLength: 200
-        timestamp:
+        elo_rating:
+          type: integer
+        games_played:
+          type: integer
+        games_won:
+          type: integer
+        games_lost:
+          type: integer
+        games_draw:
+          type: integer
+        created_at:
           type: string
           format: date-time
-          readOnly: true
-      required:
-      - message
-      - timestamp
+    Game:
+      type: object
+      properties:
+        id:
+          type: integer
+        game_code:
+          type: string
+        creator:
+          type: integer
+        creator_username:
+          type: string
+        opponent:
+          type: integer
+          nullable: true
+        opponent_username:
+          type: string
+          nullable: true
+        status:
+          type: string
+          enum: [waiting, in_progress, finished]
+        winner:
+          type: integer
+          nullable: true
+        winner_username:
+          type: string
+          nullable: true
+        is_draw:
+          type: boolean
+        current_turn:
+          type: string
+          enum: [X, O]
+        board_state:
+          type: array
+          items:
+            type: array
+            items:
+              type: string
+              nullable: true
+        timer_seconds:
+          type: integer
+        created_at:
+          type: string
+          format: date-time
+        started_at:
+          type: string
+          format: date-time
+          nullable: true
+        finished_at:
+          type: string
+          format: date-time
+          nullable: true
+    GameHistory:
+      type: object
+      properties:
+        id:
+          type: integer
+        game_code:
+          type: string
+        opponent_username:
+          type: string
+          nullable: true
+        result:
+          type: string
+        finished_at:
+          type: string
+          format: date-time
+    Rating:
+      type: object
+      properties:
+        position:
+          type: integer
+        username:
+          type: string
+        elo_rating:
+          type: integer
+        games_played:
+          type: integer
+        games_won:
+          type: integer
+        games_lost:
+          type: integer
+        games_draw:
+          type: integer
   securitySchemes:
-    basicAuth:
+    bearerAuth:
       type: http
-      scheme: basic
-    cookieAuth:
-      type: apiKey
-      in: cookie
-      name: sessionid
+      scheme: bearer
+      bearerFormat: JWT
